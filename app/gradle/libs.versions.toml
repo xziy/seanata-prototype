@@ -1,0 +1,18 @@
+[versions]
+# The same toolchain as restoapp-touch/prototype-rikka, so the Gradle cache is shared.
+kotlin = "2.4.10"
+composeMultiplatform = "1.11.1"
+rikkaui = "0.3.0"
+
+[libraries]
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+rikkaui-foundation = { module = "dev.rikkaui:foundation", version.ref = "rikkaui" }
+rikkaui-components = { module = "dev.rikkaui:components", version.ref = "rikkaui" }
+
+[plugins]
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
