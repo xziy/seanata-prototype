@@ -1,0 +1,214 @@
+# The iPhone app on a macOS runner, as in Touch VN (xziy/touch-vn, ios.yml):
+#
+#   testflight  Release, archived, signed and uploaded to App Store Connect (team Ivan Sizyi,
+#               cx.m42.seanata, app "Seanata"). On a push to main that touches the app, by hand,
+#               or by the label `testflight` on a pull request into main. Runs only when the signing
+#               secrets are present; otherwise it says so and stops, green.
+#   distribute  waits for Apple to process the build and checks it reached the TestFlight group
+#               (app/README.md, iPhone).
+#
+# The Gradle build and the Xcode project are in app/; every `run` starts there.
+name: ios
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled]
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/**'
+      - '!**.md'
+      - '!app/screenshots/**'
+      - '!app/tools/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# An upload is never cancelled: a push to main waits for the build before it.
+concurrency:
+  group: ios-${{ github.ref }}-${{ github.event.label.name || github.event_name }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: app
+
+env:
+  # Compose Multiplatform 1.11.1 references UIViewLayoutRegion, an iOS 26 class, behind an
+  # availability check; an older SDK's linker has to be told to leave it undefined.
+  OTHER_LDFLAGS: '$(inherited) -Wl,-U,_OBJC_CLASS_$_UIViewLayoutRegion'
+
+# macos-26, as in Touch VN: the App Store takes only builds from the iOS 26 SDK, and Kotlin 2.4 /
+# Compose 1.11 want its Xcode.
+jobs:
+  testflight:
+    if: >-
+      github.event.label.name == 'testflight'
+      || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main')
+    runs-on: macos-26
+    timeout-minutes: 75
+    outputs:
+      uploaded: ${{ steps.upload.outputs.uploaded }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Secrets cannot be read in a job-level `if`, so the check is a step with an output. Missing
+      # secrets end the job green with a notice: this lane is opt-in, not a gate.
+      - name: Are the signing secrets here?
+        id: gate
+        env:
+          P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROFILE_BASE64 }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          missing=""
+          [ -n "$P12" ]          || missing="$missing IOS_DIST_CERT_P12_BASE64"
+          [ -n "$P12_PASSWORD" ] || missing="$missing IOS_DIST_CERT_PASSWORD"
+          [ -n "$PROFILE" ]      || missing="$missing IOS_PROFILE_BASE64"
+          [ -n "$KEY_ID" ]       || missing="$missing ASC_KEY_ID"
+          [ -n "$ISSUER_ID" ]    || missing="$missing ASC_ISSUER_ID"
+          [ -n "$P8" ]           || missing="$missing ASC_KEY_P8_BASE64"
+          if [ -n "$missing" ]; then
+            echo "::notice::TestFlight lane skipped — secrets not set:$missing (app/README.md, iPhone)"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: ./.github/actions/ios-prepare
+        if: steps.gate.outputs.ready == 'true'
+
+      # Signed by hand, as Touch VN and Unitool are. Automatic signing on a clean runner would have to mint a
+      # development certificate every run, and the API key is an App Manager's. So the App Store
+      # profile is a secret like the certificate; ios-ci-signing.py checks the two against each other
+      # and the app, and points the build at them.
+      - name: Install the certificate, the profile and the App Store Connect key
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          P12: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROFILE_BASE64 }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          printf '%s' "$P12" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security import "$RUNNER_TEMP/dist.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          rm "$RUNNER_TEMP/dist.p12"
+
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN" | grep -m1 '"' || true)
+          if [ -z "$IDENTITY" ]; then
+            security find-identity -p codesigning "$KEYCHAIN"
+            echo "::error::IOS_DIST_CERT_P12_BASE64 gave no valid signing identity (what it gave is above)"
+            exit 1
+          fi
+          SHA1=$(echo "$IDENTITY" | awk '{print $2}')
+          NAME=$(echo "$IDENTITY" | sed 's/^[^"]*"\(.*\)"$/\1/')
+          echo "Signing as: $NAME"
+
+          printf '%s' "$PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/profile.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          UUID=$(python3 scripts/ios-ci-signing.py "$RUNNER_TEMP/profile.plist" "$SHA1" "$NAME")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          mv "$RUNNER_TEMP/profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+
+          mkdir -p "$HOME/private_keys"
+          printf '%s' "$P8" | base64 --decode > "$HOME/private_keys/AuthKey_$KEY_ID.p8"
+
+      # Info.plist says NO: the app has no cryptography of its own. An upload that says YES must carry
+      # the key of approved documentation, or Apple refuses it (ITMS-90592). So should Apple ever issue
+      # one, it is read here on every build and written in together with the YES.
+      - name: Export compliance key
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          CODE=$(python3 scripts/testflight-distribute.py --compliance-code)
+          if [ -n "$CODE" ]; then
+            plutil -replace ITSAppUsesNonExemptEncryption -bool YES iosApp/iosApp/Info.plist
+            plutil -replace ITSEncryptionExportComplianceCode -string "$CODE" iosApp/iosApp/Info.plist
+            echo "Info.plist declares the encryption, with its key"
+          else
+            echo "No encryption documentation key; Info.plist answers NO"
+          fi
+
+      # The build number is the run number, so every upload is a new build.
+      - name: Archive
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild -project iosApp/iosApp.xcodeproj -scheme iosApp -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -archivePath build/Seanata.xcarchive \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            OTHER_LDFLAGS="$OTHER_LDFLAGS" \
+            archive 2>&1 | tee build/xcodebuild.log
+
+      # `destination: upload` in the export options sends the build straight to App Store Connect;
+      # it appears under TestFlight once Apple has processed it.
+      - name: Upload to TestFlight
+        id: upload
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive -archivePath build/Seanata.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -exportPath build/export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" \
+            2>&1 | tee build/export.log
+          echo "uploaded=true" >> "$GITHUB_OUTPUT"
+
+      - name: Forget the key
+        if: always()
+        run: |
+          rm -rf "$HOME/private_keys" "$RUNNER_TEMP/signing.keychain-db" "$RUNNER_TEMP/profile.plist" \
+            iosApp/Configuration/Signing.xcconfig || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: testflight-logs
+          path: |
+            app/build/xcodebuild.log
+            app/build/export.log
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # An upload reaches nobody by itself: Apple processes it for minutes, and then it has to be put in
+  # a TestFlight group. That wait happens here, on Linux. The group is the repository variable
+  # TESTFLIGHT_GROUP, `dev` when unset.
+  distribute:
+    needs: testflight
+    if: needs.testflight.outputs.uploaded == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Apple, then give the build to the testers
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: python3 scripts/testflight-distribute.py ${{ github.run_number }} "${{ vars.TESTFLIGHT_GROUP || 'dev' }}"

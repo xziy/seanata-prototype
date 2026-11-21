@@ -18,6 +18,17 @@ kotlin {
         binaries.executable()
     }
 
+    /**
+     * The iPhone app: a static framework that `iosApp/` links, as in Touch VN and RestoApp touch. Only
+     * the klibs build without Xcode (`./gradlew :composeApp:compileKotlinIosArm64`); linking takes a Mac.
+     */
+    listOf(iosArm64(), iosSimulatorArm64()).forEach { target ->
+        target.binaries.framework {
+            baseName = "ComposeApp"
+            isStatic = true
+        }
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.compose.runtime)

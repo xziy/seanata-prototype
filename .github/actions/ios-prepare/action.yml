@@ -1,0 +1,48 @@
+# The steps every iOS job starts with: a JDK, Gradle, the Kotlin/Native toolchain and the Kotlin
+# framework linked. As in Touch VN (xziy/touch-vn), without Superizer; the Gradle build is in app/.
+name: ios-prepare
+description: Set up Java, Gradle and ~/.konan, link the Kotlin framework for Release on a device
+
+runs:
+  using: composite
+  steps:
+    # Which Xcode the runner image chose, at the top of the log rather than inferred from it.
+    - name: Xcode
+      shell: bash
+      run: xcodebuild -version && xcrun --sdk iphoneos --show-sdk-version
+
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    # setup-gradle writes its cache only on the default branch unless told otherwise.
+    - uses: gradle/actions/setup-gradle@v4
+      with:
+        cache-read-only: false
+
+    # ~/.konan — the Kotlin/Native compiler, LLVM, the iOS platform klibs — is not in ~/.gradle and
+    # would be downloaded by every run. Restore and save are split, so the toolchain is kept even when
+    # the Xcode build fails after it: a composite action has no post step.
+    - name: Restore Kotlin/Native toolchain
+      id: konan-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/.konan
+        key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('app/gradle/libs.versions.toml') }}
+        restore-keys: |
+          konan-${{ runner.os }}-${{ runner.arch }}-
+
+    # The framework before Xcode, so the build phase of iosApp finds it UP-TO-DATE: Gradle's output
+    # task by task, a Kotlin error here and not in xcodebuild.log, and a warm daemon for Xcode.
+    - name: Link the Kotlin framework
+      shell: bash
+      working-directory: app
+      run: ./gradlew :composeApp:linkReleaseFrameworkIosArm64
+
+    - name: Save Kotlin/Native toolchain
+      if: steps.konan-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.konan
+        key: ${{ steps.konan-cache.outputs.cache-primary-key }}

@@ -6,3 +6,10 @@ node_modules/
 .idea/
 *.iml
 local.properties
+
+# iPhone: written by scripts/ios-ci-signing.py for one CI run; signing material never goes into git.
+iosApp/Configuration/Signing.xcconfig
+*.mobileprovision
+*.p12
+*.p8
+xcuserdata/
