@@ -193,9 +193,12 @@ fun Segmented(
     }
 }
 
+/** How far the photo header moves for each pixel the page is scrolled. */
+private const val BackdropDrift = 0.3f
+
 /**
- * The frame of a screen: [backdrop] (a photo header) stays where it is, the interface scrolls over it,
- * and [bottom] (the navigation or an action) stays pinned.
+ * The frame of a screen: [backdrop] (a photo header) lies under the interface and follows the scroll at a
+ * third of its speed, and [bottom] (the navigation or an action) stays pinned.
  *
  * A screen whose photo fades into the page gives [sheet], the height of that photo: from there down the
  * content carries the page's colour with it, so what scrolls up is never dark text on the photo.
@@ -211,7 +214,7 @@ fun Page(
     val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize().background(Sea.Bg)) {
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-            backdrop()
+            Box(Modifier.graphicsLayer { translationY = -scroll.value * BackdropDrift }) { backdrop() }
             Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 Column(
                     Modifier.fillMaxWidth().drawBehind {
