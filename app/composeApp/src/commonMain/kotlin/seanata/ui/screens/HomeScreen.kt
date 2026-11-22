@@ -79,17 +79,21 @@ fun HomeScreen(
             SectionTitle("Ближайшие тренировки", action = "Смотреть все", onAction = { onTab(Tab.Schedule) })
             Spacer(Modifier.height(14.dp))
             Column(Modifier.fillMaxWidth().tap(onTraining).card()) {
-                Box(Modifier.fillMaxWidth().height(150.dp)) {
-                    Photo(next.hero, Modifier.matchParentSize())
-                    Box(Modifier.matchParentSize().background(Sea.Navy.copy(alpha = 0.62f)))
+                GlassOver(
+                    Modifier.fillMaxWidth().height(150.dp),
+                    under = {
+                        Photo(next.hero, Modifier.matchParentSize())
+                        Box(Modifier.matchParentSize().background(Sea.Navy.copy(alpha = 0.55f)))
+                    },
+                ) {
                     Row(Modifier.matchParentSize().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(
-                            Modifier.width(64.dp).clip(RoundedCornerShape(14.dp)).background(Color.White).padding(vertical = 8.dp),
+                            Modifier.width(64.dp).glass(16.dp, GlassTone.Clear).padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Txt(day.short, size = 13, weight = FontWeight.SemiBold)
-                            Txt("${day.number}", size = 28, weight = FontWeight.Bold, lineHeight = 32)
-                            Txt(SampleData.monthShort.uppercase(), size = 11, weight = FontWeight.Bold)
+                            Txt(day.short, size = 13, weight = FontWeight.SemiBold, color = Color.White)
+                            Txt("${day.number}", size = 28, weight = FontWeight.Bold, lineHeight = 32, color = Color.White)
+                            Txt(SampleData.monthShort.uppercase(), size = 11, weight = FontWeight.Bold, color = Color.White)
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Txt(next.title, size = 20, weight = FontWeight.Bold, color = Color.White, tracking = -0.3)

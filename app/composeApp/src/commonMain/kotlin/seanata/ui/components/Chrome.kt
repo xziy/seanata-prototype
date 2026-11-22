@@ -39,6 +39,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import seanata.res.Res
@@ -85,16 +88,14 @@ fun BrandBar(
         }
         if (guest) {
             Box(
-                Modifier.tap(onLogin).clip(RoundedCornerShape(14.dp)).background(Color(0x33FFFFFF))
-                    .border(1.dp, Color(0x66FFFFFF), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
+                Modifier.tap(onLogin).glass(14.dp, GlassTone.Clear).padding(horizontal = 18.dp, vertical = 10.dp),
             ) {
                 Txt("Войти", size = 15, weight = FontWeight.SemiBold, color = Color.White)
             }
         } else {
-            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                Ico(AppIcons.Bell, size = 26.dp, tint = Color.White)
-                Box(Modifier.align(Alignment.TopEnd).offset(x = (-7).dp, y = 6.dp).size(9.dp).clip(CircleShape).background(Sea.Alert))
+            Box(Modifier.size(42.dp).glass(21.dp, GlassTone.Clear), contentAlignment = Alignment.Center) {
+                Ico(AppIcons.Bell, size = 22.dp, tint = Color.White)
+                Box(Modifier.align(Alignment.TopEnd).offset(x = (-9).dp, y = 8.dp).size(9.dp).clip(CircleShape).background(Sea.Alert))
             }
             Spacer(Modifier.size(10.dp))
             Photo(
@@ -112,42 +113,63 @@ fun TopBar(
     onBack: () -> Unit,
 ) {
     Row(Modifier.fillMaxWidth().height(48.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).tap(onBack), contentAlignment = Alignment.CenterStart) {
-            Ico(AppIcons.ChevronLeft, size = 28.dp, tint = Color.White)
+        Box(Modifier.tap(onBack).size(42.dp).glass(21.dp, GlassTone.Clear), contentAlignment = Alignment.Center) {
+            Ico(AppIcons.ChevronLeft, Modifier.offset(x = (-1).dp), size = 24.dp, tint = Color.White)
         }
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             Txt(title, size = 19, weight = FontWeight.SemiBold, color = Color.White)
         }
-        Box(Modifier.size(40.dp), contentAlignment = Alignment.CenterEnd) {
-            Ico(AppIcons.Share, size = 24.dp, tint = Color.White)
+        Box(Modifier.size(42.dp).glass(21.dp, GlassTone.Clear), contentAlignment = Alignment.Center) {
+            Ico(AppIcons.Share, Modifier.offset(y = (-1).dp), size = 20.dp, tint = Color.White)
         }
     }
 }
 
+/** How far a floating bar keeps from the sides of the screen. */
+private val BarInset = 12.dp
+
+/** A floating bar stands on the home bar's level on an iPhone, and a little above the edge elsewhere. */
+@Composable
+private fun barBottom(): Dp = (LocalSafe.current.bottom - 12.dp).coerceAtLeast(12.dp)
+
+private val BarShadow = Color(0x590A2850)
+
+/** The sections of the app: a floating capsule of glass; the page scrolls on under it. */
 @Composable
 fun BottomNav(
     current: Tab,
     onSelect: (Tab) -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), ambientColor = Sea.Navy, spotColor = Sea.Navy)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Sea.Card).padding(top = 10.dp, bottom = 12.dp + LocalSafe.current.bottom),
+        Modifier.fillMaxWidth().padding(start = BarInset, end = BarInset, bottom = barBottom())
+            .shadow(18.dp, CircleShape, clip = false, ambientColor = BarShadow, spotColor = BarShadow)
+            .glass(34.dp).padding(5.dp),
     ) {
         Tab.entries.forEach { tab ->
-            val color by animateColorAsState(if (tab == current) Sea.Blue else Sea.Muted, tween(220))
-            Column(
-                Modifier.weight(1f).tap { onSelect(tab) },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                Ico(tab.icon, size = 25.dp, tint = color)
-                Txt(tab.label, size = 11, weight = if (tab == current) FontWeight.SemiBold else FontWeight.Medium, color = color, maxLines = 1)
+            val on = tab == current
+            val color by animateColorAsState(if (on) Sea.Blue else Sea.Ink.copy(alpha = 0.72f), tween(220))
+            val lens by animateFloatAsState(if (on) 1f else 0f, tween(260))
+            Box(Modifier.weight(1f).tap { onSelect(tab) }, contentAlignment = Alignment.Center) {
+                // The section we are in lies under a denser drop of the same glass.
+                Box(
+                    Modifier.matchParentSize().graphicsLayer { alpha = lens }.clip(CircleShape)
+                        .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.85f), Color.White.copy(alpha = 0.5f))))
+                        .border(1.dp, Color.White, CircleShape),
+                )
+                Column(
+                    Modifier.padding(top = 8.dp, bottom = 7.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Ico(tab.icon, size = 24.dp, tint = color)
+                    Txt(tab.label, size = 10, weight = if (on) FontWeight.SemiBold else FontWeight.Medium, color = color, maxLines = 1)
+                }
             }
         }
     }
 }
 
-/** The pinned bottom of an inner screen: a price and the main action. */
+/** The pinned bottom of an inner screen: a price and the main action, on a floating pane of glass. */
 @Composable
 fun ActionBar(
     price: String?,
@@ -155,18 +177,18 @@ fun ActionBar(
     content: @Composable (Modifier) -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), ambientColor = Sea.Navy, spotColor = Sea.Navy)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Sea.Card)
-            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp + LocalSafe.current.bottom),
+        Modifier.fillMaxWidth().padding(start = BarInset, end = BarInset, bottom = barBottom())
+            .shadow(18.dp, RoundedCornerShape(26.dp), clip = false, ambientColor = BarShadow, spotColor = BarShadow)
+            .glass(26.dp).padding(start = if (price != null) 18.dp else 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (price != null) {
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Txt(price, size = 24, weight = FontWeight.Bold, tracking = -0.5)
-                if (dong != null) Txt(dong, size = 12, color = Sea.Muted)
+                if (dong != null) Txt(dong, size = 12, color = Sea.Ink.copy(alpha = 0.7f))
             }
-            VLine()
+            Box(Modifier.width(1.dp).height(36.dp).background(Sea.Ink.copy(alpha = 0.12f)))
         }
         content(Modifier.weight(1f))
     }
@@ -198,7 +220,7 @@ private const val BackdropDrift = 0.3f
 
 /**
  * The frame of a screen: [backdrop] (a photo header) lies under the interface and follows the scroll at a
- * third of its speed, and [bottom] (the navigation or an action) stays pinned.
+ * third of its speed, and [bottom] (the navigation or an action) floats over the page as glass.
  *
  * A screen whose photo fades into the page gives [sheet], the height of that photo: from there down the
  * content carries the page's colour with it, so what scrolls up is never dark text on the photo.
@@ -212,27 +234,41 @@ fun Page(
 ) {
     val safe = LocalSafe.current
     val scroll = rememberScrollState()
-    Column(Modifier.fillMaxSize().background(Sea.Bg)) {
-        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-            Box(Modifier.graphicsLayer { translationY = -scroll.value * BackdropDrift }) { backdrop() }
-            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-                Column(
-                    Modifier.fillMaxWidth().drawBehind {
-                        if (sheet == null) return@drawBehind
-                        val solid = (safe.top + sheet.dp - 45.dp).toPx()
-                        val soft = solid - 50.dp.toPx()
-                        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Sea.Bg), startY = soft, endY = solid), Offset(0f, soft), Size(size.width, solid - soft))
-                        drawRect(Sea.Bg, Offset(0f, solid), Size(size.width, (size.height - solid).coerceAtLeast(0f)))
-                    }.padding(top = safe.top),
-                    content = content,
-                )
+    // The glass in the content looks through to the photo; the bars look through to the whole page.
+    val photo = rememberGlassSource { scroll.value }
+    val page = rememberGlassSource { scroll.value }
+    var bar by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    Box(Modifier.fillMaxSize().clipToBounds()) {
+        Box(Modifier.fillMaxSize().glassSource(page).background(Sea.Bg)) {
+            Box(Modifier.glassSource(photo)) {
+                Box(Modifier.graphicsLayer { translationY = -scroll.value * BackdropDrift }) { backdrop() }
             }
-            // What scrolls up must not run under the clock: a navy band comes in with the first of the scroll.
-            if (safe.top > 0.dp) {
-                Box(Modifier.fillMaxWidth().height(safe.top).graphicsLayer { alpha = (scroll.value / 40.dp.toPx()).coerceIn(0f, 1f) }.background(Sea.Navy))
+            CompositionLocalProvider(LocalGlassSource provides photo) {
+                Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+                    Column(
+                        Modifier.fillMaxWidth().drawBehind {
+                            if (sheet == null) return@drawBehind
+                            val solid = (safe.top + sheet.dp - 45.dp).toPx()
+                            val soft = solid - 50.dp.toPx()
+                            drawRect(Brush.verticalGradient(listOf(Color.Transparent, Sea.Bg), startY = soft, endY = solid), Offset(0f, soft), Size(size.width, solid - soft))
+                            drawRect(Sea.Bg, Offset(0f, solid), Size(size.width, (size.height - solid).coerceAtLeast(0f)))
+                        }.padding(top = safe.top, bottom = bar),
+                        content = content,
+                    )
+                }
             }
         }
-        bottom()
+        CompositionLocalProvider(LocalGlassSource provides page) {
+            // What scrolls up must not run under the clock: a band of dark glass comes in with the first of the scroll.
+            if (safe.top > 0.dp) {
+                Box(
+                    Modifier.fillMaxWidth().height(safe.top).graphicsLayer { alpha = (scroll.value / 40.dp.toPx()).coerceIn(0f, 1f) }
+                        .glass(0.dp, GlassTone(Sea.Navy.copy(alpha = 0.78f), sheen = 0f, rim = 0f), blur = 20.dp),
+                )
+            }
+            Box(Modifier.align(Alignment.BottomCenter).onSizeChanged { bar = with(density) { it.height.toDp() } }) { bottom() }
+        }
     }
 }
 

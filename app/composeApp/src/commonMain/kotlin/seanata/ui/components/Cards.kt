@@ -68,12 +68,8 @@ fun TrainingCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(width = 108.dp, height = 104.dp).clip(RoundedCornerShape(12.dp))) {
-            Photo(training.photo, Modifier.matchParentSize())
-            Box(
-                Modifier.align(Alignment.BottomStart).padding(6.dp).clip(RoundedCornerShape(7.dp))
-                    .background(Color(0xB3071A36)).padding(horizontal = 7.dp, vertical = 3.dp),
-            ) {
+        GlassOver(Modifier.size(width = 108.dp, height = 104.dp).clip(RoundedCornerShape(12.dp)), under = { Photo(training.photo, Modifier.matchParentSize()) }) {
+            Box(Modifier.align(Alignment.BottomStart).padding(6.dp).glass(8.dp, GlassTone.Smoke, blur = 8.dp).padding(horizontal = 7.dp, vertical = 3.dp)) {
                 Txt(training.yacht, size = 11, weight = FontWeight.Medium, color = Color.White)
             }
         }
@@ -119,9 +115,13 @@ fun Banner(
     onClick: () -> Unit,
     shade: Color = Sea.Navy,
 ) {
-    Box(Modifier.fillMaxWidth().height(124.dp).tap(onClick).card(radius = 20.dp)) {
-        Photo(photo, Modifier.matchParentSize())
-        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(0f to shade, 0.55f to shade.copy(alpha = 0.75f), 1f to Color.Transparent)))
+    GlassOver(
+        Modifier.fillMaxWidth().height(124.dp).tap(onClick).card(radius = 20.dp),
+        under = {
+            Photo(photo, Modifier.matchParentSize())
+            Box(Modifier.matchParentSize().background(Brush.horizontalGradient(0f to shade, 0.55f to shade.copy(alpha = 0.75f), 1f to Color.Transparent)))
+        },
+    ) {
         Row(Modifier.matchParentSize().padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Txt(title, size = 19, weight = FontWeight.Bold, color = Color.White, lineHeight = 23, tracking = -0.3)

@@ -7,7 +7,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 }, devi
 const errors = []; page.on('pageerror', e => errors.push(String(e)));
 const shot = n => page.screenshot({ path: `${out}check-${n}.png` });
 const open = async hash => { await page.goto('about:blank'); await page.goto(`${base}?safe=47,34#${hash}`, { waitUntil: 'networkidle' }); await page.waitForSelector('canvas'); await page.waitForTimeout(3000); };
-for (const screen of ['home', 'course', 'welcome', 'schedule', 'training', 'booked', 'profile']) {
+for (const screen of ['home', 'course', 'welcome', 'schedule', 'training', 'booked', 'logbook', 'passage', 'profile']) {
   await open(screen); await shot(`${screen}-0`);
   await page.mouse.move(195, 500); await page.mouse.wheel(0, 150); await page.waitForTimeout(500); await shot(`${screen}-1`);
   await page.mouse.wheel(0, 400); await page.waitForTimeout(500); await shot(`${screen}-2`);

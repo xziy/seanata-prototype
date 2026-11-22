@@ -10,9 +10,14 @@ python3 -m http.server 17741 --directory composeApp/build/dist/wasmJs/developmen
 `node tools/screenshots/flow.mjs <url> <outDir>/` прокликивает запись на тренировку и ловит анимации на середине.
 `node tools/screenshots/check.mjs <url> <outDir>/` снимает экраны с «чёлкой» (`?safe=47,34` в адресе задаёт отступы
 сверху и снизу вручную) до и после прокрутки и кадры переходов.
+`node tools/screenshots/zoom.mjs <url> <outDir>/` — крупные планы 3x: стекло панелей и треки логбука.
 
-Экраны по адресу: `#welcome`, `#home`, `#courses`, `#course`, `#program`, `#schedule`, `#training`, `#booked`, `#logbook`, `#profile`.
+Экраны по адресу: `#welcome`, `#home`, `#courses`, `#course`, `#program`, `#schedule`, `#training`, `#booked`, `#logbook`, `#passage`, `#profile`.
 
+- `ui/components/Glass.kt` — «жидкое стекло» (`Modifier.glass`): размытие подложки, преломление у кромки (шейдер Skia), блик.
+  Панели смотрят сквозь страницу, плашки на фото — сквозь фото (`GlassOver`). Это рисует Compose, не системное стекло iOS 26.
+- `data/Logbook.kt` — логбук: у перехода записаны только трек и время отхода, мили, время, курсы и вахтенный журнал
+  считаются из них; `ui/components/BayChart.kt` — схема залива Нячанга с треком (нарисована от руки, не карта).
 - `theme/AppTheme.kt` — палитра `Sea` и шрифт; `data/SampleData.kt` — все демо-данные.
 - `ui/components/` — кирпичи (текст, карточки, панели, иконки Lucide); `ui/screens/` — экраны.
 - Фото сгенерированы Codex: `../tools/gen-images.sh` (исходники в `../assets/raw`, в ресурсах — сжатые JPEG).

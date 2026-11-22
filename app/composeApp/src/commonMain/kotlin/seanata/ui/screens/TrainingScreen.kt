@@ -56,15 +56,15 @@ fun TrainingScreen(
             TopBar("Тренировка", onBack)
             Spacer(Modifier.height(170.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Tag(training.tag, solid = true)
-                if (booked) Tag("Вы записаны")
+                Tag(training.tag, solid = true, glass = true)
+                if (booked) Tag("Вы записаны", glass = true)
             }
             Spacer(Modifier.height(10.dp))
             Txt(training.title, size = 28, weight = FontWeight.Bold, color = Color.White, tracking = -0.6, lineHeight = 32)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Meta(AppIcons.Pin, SampleData.marina, Modifier.weight(1f), color = Color.White, size = 15)
-                Box(Modifier.clip(RoundedCornerShape(9.dp)).border(1.dp, Color(0x99FFFFFF), RoundedCornerShape(9.dp)).padding(horizontal = 10.dp, vertical = 4.dp)) {
+                Box(Modifier.glass(9.dp, GlassTone.Clear).padding(horizontal = 10.dp, vertical = 4.dp)) {
                     Txt(training.yacht, size = 13, weight = FontWeight.Medium, color = Color.White)
                 }
             }

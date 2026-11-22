@@ -7,7 +7,7 @@ import { mkdirSync } from 'node:fs';
 
 const base = process.argv[2] ?? 'http://127.0.0.1:8731/';
 const out = process.argv[3] ?? new URL('../../screenshots/', import.meta.url).pathname;
-const screens = ['welcome', 'home', 'courses', 'course', 'program', 'schedule', 'training', 'booked', 'logbook', 'profile'];
+const screens = ['welcome', 'home', 'courses', 'course', 'program', 'schedule', 'training', 'booked', 'logbook', 'passage', 'profile'];
 const themes = [['light', '']];
 
 mkdirSync(out, { recursive: true });

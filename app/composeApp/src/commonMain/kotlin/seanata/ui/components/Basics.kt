@@ -186,14 +186,15 @@ fun SecondaryButton(
     }
 }
 
-/** The kind of a training: «Практика», «Навигация». */
+/** The kind of a training: «Практика», «Навигация». [glass]: the tag lies on a photo. */
 @Composable
 fun Tag(
     text: String,
     solid: Boolean = false,
+    glass: Boolean = false,
 ) {
     Box(
-        Modifier.clip(RoundedCornerShape(8.dp)).background(if (solid) Sea.BlueBright else Sea.Tint)
+        (if (glass) Modifier.glass(8.dp, if (solid) GlassTone.Blue else GlassTone.Light) else Modifier.clip(RoundedCornerShape(8.dp)).background(if (solid) Sea.BlueBright else Sea.Tint))
             .padding(horizontal = 10.dp, vertical = 4.dp),
     ) {
         Txt(text, size = 12, weight = FontWeight.SemiBold, color = if (solid) Color.White else Sea.Blue)
@@ -215,26 +216,26 @@ fun Meta(
     }
 }
 
-/** A fact of a course on a white pill: «5 дней». */
+/** A fact of a course on a pill of glass over its photo: «5 дней». */
 @Composable
 fun Pill(
     icon: ImageVector,
     text: String,
 ) {
     Row(
-        Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White).padding(horizontal = 10.dp, vertical = 7.dp),
+        Modifier.glass(12.dp, GlassTone.Clear).padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Ico(icon, size = 16.dp)
-        Txt(text, size = 13, weight = FontWeight.Medium)
+        Ico(icon, size = 16.dp, tint = Color.White)
+        Txt(text, size = 13, weight = FontWeight.Medium, color = Color.White)
     }
 }
 
 /** The round «further» button on a banner. */
 @Composable
 fun RoundChevron(modifier: Modifier = Modifier) {
-    Box(modifier.size(40.dp).clip(CircleShape).background(Color(0x55FFFFFF)), contentAlignment = Alignment.Center) {
+    Box(modifier.size(40.dp).glass(20.dp, GlassTone.Clear), contentAlignment = Alignment.Center) {
         Ico(AppIcons.ChevronRight, size = 20.dp, tint = Color.White)
     }
 }

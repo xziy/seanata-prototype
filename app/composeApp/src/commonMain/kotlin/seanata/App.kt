@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import seanata.data.Logbook
 import seanata.data.SampleData
 import seanata.theme.AppTheme
 import seanata.theme.Sea
@@ -29,6 +30,7 @@ import seanata.ui.screens.CourseScreen
 import seanata.ui.screens.CoursesScreen
 import seanata.ui.screens.HomeScreen
 import seanata.ui.screens.LogbookScreen
+import seanata.ui.screens.PassageScreen
 import seanata.ui.screens.ProfileScreen
 import seanata.ui.screens.ScheduleScreen
 import seanata.ui.screens.TrainingScreen
@@ -46,6 +48,7 @@ enum class Route(val hash: String, val depth: Int = 0) {
     Training("training", 1),
     Booked("booked", 2),
     Logbook("logbook"),
+    Passage("passage", 1),
     Profile("profile"),
     ;
 
@@ -69,6 +72,7 @@ fun App(
     var day by remember { mutableStateOf(SampleData.today) }
     var trainingId by remember { mutableStateOf(5) }
     var trainingFrom by remember { mutableStateOf(Route.Schedule) }
+    var passageId by remember { mutableStateOf(Logbook.passages.first().id) }
     var layer by remember { mutableStateOf(0f) }
     var booked by remember { mutableStateOf(if (start == Route.Booked) setOf(5) else emptySet()) }
 
@@ -174,7 +178,13 @@ fun App(
                             onHome = { home() },
                         )
 
-                        Route.Logbook -> LogbookScreen(onProfile = { go(Route.Profile) }, bottom = nav(Tab.Logbook))
+                        Route.Logbook -> LogbookScreen(
+                            onPassage = { passageId = it.id; go(Route.Passage) },
+                            onProfile = { go(Route.Profile) },
+                            bottom = nav(Tab.Logbook),
+                        )
+
+                        Route.Passage -> PassageScreen(Logbook.passages.first { it.id == passageId }, onBack = { go(Route.Logbook) })
 
                         Route.Profile -> ProfileScreen(onLogout = { guest = true; go(Route.Welcome) }, bottom = nav(Tab.Profile))
                     }
