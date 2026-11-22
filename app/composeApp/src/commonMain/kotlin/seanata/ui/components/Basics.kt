@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,6 +113,20 @@ fun slideFade(forward: Boolean, shift: Int = 6): ContentTransform {
         initialContentExit = fadeOut(tween(150)) + slideOutHorizontally(tween(330)) { -dir * it / shift },
         sizeTransform = SizeTransform(clip = false),
     )
+}
+
+/**
+ * How one screen replaces another. Nothing turns transparent on the way, so the page never shows through
+ * as a flash: a deeper screen rides in from the right over the one it leaves, and rides back out on return;
+ * a neighbouring section settles in on top of the one still standing there.
+ */
+fun screenChange(depth: Int, layer: Float): ContentTransform {
+    val move = tween<IntOffset>(360, easing = FastOutSlowInEasing)
+    return when {
+        depth > 0 -> ContentTransform(slideInHorizontally(move) { it }, slideOutHorizontally(move) { -it / 4 }, layer)
+        depth < 0 -> ContentTransform(slideInHorizontally(move) { -it / 4 }, slideOutHorizontally(move) { it }, layer)
+        else -> ContentTransform(fadeIn(tween(240, easing = LinearOutSlowInEasing)), fadeOut(snap(delayMillis = 240)), layer)
+    }
 }
 
 /** The white raised surface every block sits on. */

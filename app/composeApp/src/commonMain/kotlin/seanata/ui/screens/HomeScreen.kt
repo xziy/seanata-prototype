@@ -47,7 +47,7 @@ fun HomeScreen(
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }
     val progress by animateFloatAsState(if (shown) SampleData.theoryProgress else 0f, tween(900, delayMillis = 300))
-    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 330) }) {
+    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 330) }, sheet = 330) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 24.dp)) {
             BrandBar(onProfile = { onTab(Tab.Profile) })
             Spacer(Modifier.height(22.dp))

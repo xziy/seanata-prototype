@@ -28,26 +28,6 @@ import seanata.res.*
 import seanata.theme.Sea
 import seanata.ui.components.*
 
-import org.jetbrains.compose.resources.DrawableResource
-
-/** The photo behind the top of a screen: navy at the top for the bar, fading into the page below. */
-@Composable
-fun Backdrop(
-    photo: DrawableResource,
-    height: Int,
-    fade: Boolean = true,
-    alignment: Alignment = Alignment.Center,
-) {
-    Box(Modifier.fillMaxWidth().height(height.dp)) {
-        Photo(photo, Modifier.matchParentSize(), alignment)
-        if (fade) {
-            Scrim(0f to Sea.Navy.copy(alpha = 0.92f), 0.45f to Sea.Navy.copy(alpha = 0.6f), 0.8f to Sea.Bg.copy(alpha = 0.85f), 1f to Sea.Bg, modifier = Modifier.matchParentSize())
-        } else {
-            Scrim(0f to Sea.Navy.copy(alpha = 0.9f), 0.3f to Sea.Navy.copy(alpha = 0.15f), 0.48f to Sea.Navy.copy(alpha = 0.3f), 0.75f to Sea.NavyDeep.copy(alpha = 0.78f), 1f to Sea.NavyDeep.copy(alpha = 0.92f), modifier = Modifier.matchParentSize())
-        }
-    }
-}
-
 /** A plain titled block of text on a card. */
 @Composable
 fun TextCard(

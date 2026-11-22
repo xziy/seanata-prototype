@@ -34,7 +34,7 @@ fun CoursesScreen(
     onProfile: () -> Unit,
     bottom: @Composable () -> Unit,
 ) {
-    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 250) }) {
+    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 250) }, sheet = 250) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             BrandBar(onProfile = onProfile)
             Txt("Курсы", Modifier.padding(top = 8.dp), size = 28, weight = FontWeight.Bold, color = Color.White, tracking = -0.6)

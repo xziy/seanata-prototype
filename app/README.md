@@ -8,6 +8,8 @@ python3 -m http.server 17741 --directory composeApp/build/dist/wasmJs/developmen
 ```
 
 `node tools/screenshots/flow.mjs <url> <outDir>/` прокликивает запись на тренировку и ловит анимации на середине.
+`node tools/screenshots/check.mjs <url> <outDir>/` снимает экраны с «чёлкой» (`?safe=47,34` в адресе задаёт отступы
+сверху и снизу вручную) до и после прокрутки и кадры переходов.
 
 Экраны по адресу: `#welcome`, `#home`, `#courses`, `#course`, `#program`, `#schedule`, `#training`, `#booked`, `#logbook`, `#profile`.
 

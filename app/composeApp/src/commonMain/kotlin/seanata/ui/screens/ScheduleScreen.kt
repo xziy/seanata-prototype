@@ -42,7 +42,7 @@ fun ScheduleScreen(
     onProfile: () -> Unit,
     bottom: @Composable () -> Unit,
 ) {
-    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 330) }) {
+    Page(bottom = bottom, backdrop = { Backdrop(Res.drawable.sea_dusk, 330) }, sheet = 330) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 24.dp)) {
             BrandBar(onProfile = onProfile)
             Spacer(Modifier.height(20.dp))

@@ -27,6 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import org.jetbrains.compose.resources.DrawableResource
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -125,7 +131,7 @@ fun BottomNav(
 ) {
     Row(
         Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), ambientColor = Sea.Navy, spotColor = Sea.Navy)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Sea.Card).padding(top = 10.dp, bottom = 12.dp),
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Sea.Card).padding(top = 10.dp, bottom = 12.dp + LocalSafe.current.bottom),
     ) {
         Tab.entries.forEach { tab ->
             val color by animateColorAsState(if (tab == current) Sea.Blue else Sea.Muted, tween(220))
@@ -151,7 +157,7 @@ fun ActionBar(
     Row(
         Modifier.fillMaxWidth().shadow(16.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), ambientColor = Sea.Navy, spotColor = Sea.Navy)
             .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)).background(Sea.Card)
-            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp + LocalSafe.current.bottom),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -188,20 +194,59 @@ fun Segmented(
 }
 
 /**
- * The frame of a screen: the page scrolls as a whole, with [backdrop] (a photo header) behind its top,
+ * The frame of a screen: [backdrop] (a photo header) stays where it is, the interface scrolls over it,
  * and [bottom] (the navigation or an action) stays pinned.
+ *
+ * A screen whose photo fades into the page gives [sheet], the height of that photo: from there down the
+ * content carries the page's colour with it, so what scrolls up is never dark text on the photo.
  */
 @Composable
 fun Page(
     bottom: @Composable () -> Unit,
     backdrop: @Composable () -> Unit,
+    sheet: Int? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val safe = LocalSafe.current
+    val scroll = rememberScrollState()
     Column(Modifier.fillMaxSize().background(Sea.Bg)) {
-        Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
             backdrop()
-            Column(Modifier.fillMaxWidth(), content = content)
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+                Column(
+                    Modifier.fillMaxWidth().drawBehind {
+                        if (sheet == null) return@drawBehind
+                        val solid = (safe.top + sheet.dp - 45.dp).toPx()
+                        val soft = solid - 50.dp.toPx()
+                        drawRect(Brush.verticalGradient(listOf(Color.Transparent, Sea.Bg), startY = soft, endY = solid), Offset(0f, soft), Size(size.width, solid - soft))
+                        drawRect(Sea.Bg, Offset(0f, solid), Size(size.width, (size.height - solid).coerceAtLeast(0f)))
+                    }.padding(top = safe.top),
+                    content = content,
+                )
+            }
+            // What scrolls up must not run under the clock: a navy band comes in with the first of the scroll.
+            if (safe.top > 0.dp) {
+                Box(Modifier.fillMaxWidth().height(safe.top).graphicsLayer { alpha = (scroll.value / 40.dp.toPx()).coerceIn(0f, 1f) }.background(Sea.Navy))
+            }
         }
         bottom()
+    }
+}
+
+/** The photo behind the top of a screen: navy at the top for the bar, fading into the page below. */
+@Composable
+fun Backdrop(
+    photo: DrawableResource,
+    height: Int,
+    fade: Boolean = true,
+    alignment: Alignment = Alignment.Center,
+) {
+    Box(Modifier.fillMaxWidth().height(LocalSafe.current.top + height.dp)) {
+        Photo(photo, Modifier.matchParentSize(), alignment)
+        if (fade) {
+            Scrim(0f to Sea.Navy.copy(alpha = 0.92f), 0.45f to Sea.Navy.copy(alpha = 0.6f), 0.8f to Sea.Bg.copy(alpha = 0.85f), 1f to Sea.Bg, modifier = Modifier.matchParentSize())
+        } else {
+            Scrim(0f to Sea.Navy.copy(alpha = 0.9f), 0.3f to Sea.Navy.copy(alpha = 0.15f), 0.48f to Sea.Navy.copy(alpha = 0.3f), 0.75f to Sea.NavyDeep.copy(alpha = 0.78f), 1f to Sea.NavyDeep.copy(alpha = 0.92f), modifier = Modifier.matchParentSize())
+        }
     }
 }

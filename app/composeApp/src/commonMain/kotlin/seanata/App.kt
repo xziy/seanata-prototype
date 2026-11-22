@@ -1,16 +1,14 @@
 package seanata
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,7 +21,9 @@ import seanata.theme.AppTheme
 import seanata.theme.Sea
 import seanata.ui.components.BottomNav
 import seanata.ui.components.Tab
-import seanata.ui.components.slideFade
+import seanata.ui.components.LocalSafe
+import seanata.ui.components.safeArea
+import seanata.ui.components.screenChange
 import seanata.ui.screens.BookedScreen
 import seanata.ui.screens.CourseScreen
 import seanata.ui.screens.CoursesScreen
@@ -69,9 +69,12 @@ fun App(
     var day by remember { mutableStateOf(SampleData.today) }
     var trainingId by remember { mutableStateOf(5) }
     var trainingFrom by remember { mutableStateOf(Route.Schedule) }
+    var layer by remember { mutableStateOf(0f) }
     var booked by remember { mutableStateOf(if (start == Route.Booked) setOf(5) else emptySet()) }
 
     fun go(to: Route) {
+        // A screen we return to lies under the one that leaves; any other comes in on top.
+        if (to != route) layer += if (to.depth < route.depth) -1f else 1f
         route = to
         onRouteChange(to)
     }
@@ -107,14 +110,12 @@ fun App(
 
     AppTheme {
         // On a wide window the app stays a phone's column in the middle.
+        CompositionLocalProvider(LocalSafe provides safeArea()) {
         Box(Modifier.fillMaxSize().background(Sea.NavyDeep)) {
-            Box(Modifier.align(Alignment.TopCenter).widthIn(max = 460.dp).fillMaxHeight().background(Sea.Bg)) {
+            Box(Modifier.align(Alignment.TopCenter).widthIn(max = 460.dp).fillMaxHeight().clipToBounds().background(Sea.Bg)) {
                 AnimatedContent(
                     route,
-                    transitionSpec = {
-                        val deeper = targetState.depth - initialState.depth
-                        if (deeper == 0) fadeIn(tween(240)) togetherWith fadeOut(tween(160)) else slideFade(deeper > 0, shift = 3)
-                    },
+                    transitionSpec = { screenChange(targetState.depth - initialState.depth, layer) },
                     label = "route",
                 ) { shown ->
                     when (shown) {
@@ -179,6 +180,7 @@ fun App(
                     }
                 }
             }
+        }
         }
     }
 }

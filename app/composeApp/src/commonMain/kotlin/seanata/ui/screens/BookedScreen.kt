@@ -36,10 +36,11 @@ fun BookedScreen(
     onHome: () -> Unit,
 ) {
     val day = SampleData.week[training.day]
+    val safe = LocalSafe.current
     Box(Modifier.fillMaxSize()) {
         Photo(Res.drawable.hero_deck, Modifier.matchParentSize())
         Box(Modifier.matchParentSize().background(Sea.NavyDeep.copy(alpha = 0.78f)))
-        Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxSize().padding(start = 22.dp, end = 22.dp, top = 28.dp + safe.top, bottom = 28.dp + safe.bottom), horizontalAlignment = Alignment.CenterHorizontally) {
             Logo(height = 36.dp)
             Spacer(Modifier.weight(1f))
             Box(Modifier.size(84.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
